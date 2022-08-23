@@ -1,13 +1,17 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpsPolicy;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using MVC_1.Models;
 
 namespace MVC_1
 {
@@ -24,6 +28,10 @@ namespace MVC_1
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllersWithViews();
+            services.AddDbContext<AppDbContext>(options => {
+                string connectionString = Configuration.GetConnectionString("MVCstring");
+                options.UseSqlServer(connectionString);
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -41,6 +49,25 @@ namespace MVC_1
             }
             app.UseHttpsRedirection();
             app.UseStaticFiles();
+
+            app.UseStatusCodePages(error => {
+                error.Run(async context => {
+                    var respone = context.Response;
+                    
+                    var code = respone.StatusCode;
+                    
+                    var content = @$"
+                    <html>
+                        <head>
+                            <meta charset = 'UTF-8'/>
+                        </head>
+                        <h1>Lỗi: {code} -{(HttpStatusCode)code} </h1>
+                    </html>
+                    ";
+                    
+                    await respone.WriteAsync(content);
+                });
+            });
 
             app.UseRouting();
 
